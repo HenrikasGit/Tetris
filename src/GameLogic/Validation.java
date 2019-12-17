@@ -6,54 +6,50 @@ public class Validation {
         this.gameBoard=gameBoard;
     }
     public boolean isFigureInLimits(Shape figure){
-        int posY=figure.getPositionY();
-        int posX=figure.getPositionX();
-        for (int i=posY; i<posY+figure.getSize(); i++) {
-            for (int j = posX; j < posX+figure.getSize(); j++) {
-                if (figure.getBlock(j - posX, i - posY) > 0 && gameBoard.isBlockInLimits(j, i) == false) return false;
+        Position position = figure.getPosition();
+        int posX = position.getPositionX();
+        int posY = position.getPositionY();
+        for (int row=0; row<figure.getSize(); row++){
+            for (int column=0; column<figure.getSize(); column++){
+                if(figure.getBlock(column, row)>0 && gameBoard.isBlockInLimits(column+posX, row+posY) == false) return false;
             }
         }
         return true;
     }
-    public boolean doesFigureFit(Shape oldFigure, Shape newFigure){
-        try{
-            if(oldFigure!=newFigure) gameBoard.removeFigure(oldFigure);
-        } catch (Exception e){
-            return false;
-        }
-        int posY=newFigure.getPositionY();
-        int posX=newFigure.getPositionX();
-        for (int i=posY; i<posY+oldFigure.getSize(); i++){
-            for (int j=posX; j<posX+oldFigure.getSize(); j++){
-                if(newFigure.getBlock(j-posX,i-posY)>0 && gameBoard.getBlock(j,i)>0){
-                    if(oldFigure!=newFigure) gameBoard.setFigure(oldFigure);
-                    return false;
-                }
+    public boolean doesFigureFit(Shape figure){
+        Position newPosition = figure.getPosition();
+        int posY=newPosition.getPositionY();
+        int posX=newPosition.getPositionX();
+        for (int row=0; row<figure.getSize(); row++){
+            for (int column=0; column<figure.getSize(); column++){
+                if(figure.getBlock(column, row)>0 && gameBoard.getBlock(column+posX, row+posY)>0) return false;
             }
         }
-        if(oldFigure!=newFigure) gameBoard.setFigure(oldFigure);
         return true;
     }
     public boolean isGameOver(){
-        for (int i=0; i<4; i++){
-            for (int j=0; j<10; j++){
-                if(gameBoard.getBlock(j,i)>0) return true;
+        for (int row=0; row<ShapeCache.getMaxShapeSize(); row++){
+            for (int column=0; column<gameBoard.getColumnsSize(); column++){
+                if(gameBoard.getBlock(column,row)>0) return true;
             }
         }
         return false;
     }
-    public boolean canFigureBeThere(Shape oldFigure, Shape newFigure){
-        if(doesFigureFit(oldFigure, newFigure)==true && isFigureInLimits(newFigure)==true){
-            return true;
-        }
-        return false;
+    public boolean canFigureBeThere(Shape figure){
+        return doesFigureFit(figure) && isFigureInLimits(figure);
     }
-    public boolean canFigureMoveDown(Shape figure){
+    public boolean canReplaceFigure(Shape oldFigure, Shape newFigure){
+        gameBoard.removeFigure(oldFigure);
+        if(canFigureBeThere(newFigure)) return true;
+        else {
+            gameBoard.setFigure(oldFigure);
+            return false;
+        }
+    }
+    public boolean canFigureMove(Shape figure, String direction){
         if(figure==null) return false;
-        Shape newFigure = figure.copy(true);
-        newFigure.changeRelativeVerticalPosition(1);
-        return canFigureBeThere(figure, newFigure);
+        Shape newFigure = (Shape)figure.clone();
+        newFigure.go(direction, 1);
+        return canReplaceFigure(figure, newFigure);
     }
 }
-
-

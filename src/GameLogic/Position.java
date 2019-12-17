@@ -1,6 +1,6 @@
 package GameLogic;
 
-public class Position {
+public class Position{
     int positionX;
     int positionY;
 
@@ -22,5 +22,27 @@ public class Position {
     public void setPosition(int positionX, int positionY){
         this.positionX = positionX;
         this.positionY = positionY;
+    }
+    public void moveRelatively(String direction, int amount){
+        if(direction=="Down") positionY+=amount;
+        else if(direction=="Left") positionX-=amount;
+        else if(direction=="Right") positionX+=amount;
+        else if(direction=="Up") positionY-=amount;
+        else if(direction=="Down-Left"){
+            positionY+=amount;
+            positionX-=amount;
+        }
+        else if(direction=="Down-Right"){
+            positionY+=amount;
+            positionX+=amount;
+        }
+        else if(direction=="Up-Left"){
+            positionY-=amount;
+            positionX-=amount;
+        }
+        else if(direction=="Up-Right"){
+            positionY-=amount;
+            positionX+=amount;
+        }
     }
 }

@@ -2,51 +2,59 @@ package GameLogic;
 
 public class Field {
     int[][] field;
-    int sizeX, sizeY;
+    int columns, rows;
 
-    public Field(int x, int y) {
-        field = new int[y][x];
-        sizeX=x;
-        sizeY=y;
+    public Field(int columns, int rows) {
+        field = new int[rows][columns];
+        this.columns = columns;
+        this.rows = rows;
     }
+
     public boolean isRowFull(int rowID){
-        for (int i=0; i<sizeX; i++){
+        for (int i = 0; i<columns; i++){
             if(field[rowID][i]==0) return false;
         }
         return true;
     }
-    public int getItem(int x, int y){
-        return field[y][x];
+    public int getItem(int column, int row){
+        return field[row][column];
     }
-    public void setItem(int x, int y, int value){
-        field[y][x]=value;
+    public void setItem(int column, int row, int value){
+        field[row][column]=value;
     }
-    public void moveRowsDown(int y){
-        for (int i=y; i>0; i--){
-            System.arraycopy(field[i-1], 0, field[i], 0, sizeX);
+    public void moveRowsDown(int rowID){
+        for (int i=rowID; i>0; i--){
+            System.arraycopy(field[i-1], 0, field[i], 0, columns);
         }
-        fillRowsWithZeroes(0);
+        fillRow(0, 0);
+    }
+    public void moveColumnsLeft(int columnID){
+        for (int i = 0; i < rows; i++){
+            for (int j = columnID; j < columns; j++){
+                if(j == columns-1) field[i][j]=0;
+                else field[i][j]=Integer.valueOf(field[i][j+1]);
+            }
+        }
+        fillColumn(columns-1, 0);
+    }
+    public void fillColumn(int columnID, int color){
+        for (int i = 0; i< rows; i++){
+            field[i][columnID] = color;
+        }
+    }
+    public void fillRow(int rowID, int color){
+        for (int i = 0; i< columns; i++){
+            field[rowID][i] = color;
+        }
     }
     public int[] getRow(int rowID){
         return field[rowID];
     }
-    public int[] getColumn(int columnID){
-        int[] column = new int[sizeY];
-        for (int i=0; i<sizeY; i++){
-            column[i]=field[i][columnID];
-        }
-        return column;
-    }
-    public int[][] getRangeOfLines(int startY, int endY){
-        int[][] range = new int[endY-startY][sizeX];
+    public int[][] getRangeOfRows(int startY, int endY){
+        int[][] range = new int[endY-startY][columns];
         for (int i=0; i<endY-startY; i++){
-            System.arraycopy(field[startY+i], 0, range[i], 0, sizeX);
+            System.arraycopy(field[startY+i], 0, range[i], 0, columns);
         }
         return range;
-    }
-    public void fillRowsWithZeroes(int rowID){
-        for (int i=0; i<sizeX; i++){
-            field[rowID][i]=0;
-        }
     }
 }

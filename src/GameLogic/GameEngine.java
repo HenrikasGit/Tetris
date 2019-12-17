@@ -1,72 +1,62 @@
 package GameLogic;
 
-import Shapes.*;
-
 public class GameEngine {
     private Shape activeFigure, nextFigure;
     private Shape savedFigure = new Shape(0,0);
-    GameBoard gameBoard = new GameBoard();
-    Validation validation = new Validation(gameBoard);
+    GameBoard gameBoard;
+    Validation validation;
     private int clearedLines=0;
-    private boolean canSaveShape=true;
-    public Shape getNextFigure(){
-        return nextFigure;
+    private boolean canSaveFigure =true;
+
+    public GameEngine() {
+        ShapeCache.loadCache();
+        ShapeCache.countMaxShapeSize();
+        gameBoard = new GameBoard();
+        ShapeCache.setSpawnPoint(gameBoard);
+        validation = new Validation(gameBoard);
+        activeFigure = createRandomFigure();
+        nextFigure = createRandomFigure();
+        spawnFigure();
+
     }
-    public Shape getSavedFigure(){
-        return savedFigure;
-    }
-    public int getClearedLines(){
-        return clearedLines;
-    }
-    public int[][] getVisibleGameBoard(){
-        return gameBoard.getVisibleGameBoard();
-    }
-    public void smashFigureDown(){
-        while(validation.canFigureMoveDown(activeFigure)){
-            moveFigure("Down");
-        }
+
+    public Shape getNextFigure(){ return nextFigure; }
+    public Shape getSavedFigure(){ return savedFigure; }
+    public int getClearedLines(){ return clearedLines; }
+    public int[][] getVisibleGameBoard(){ return gameBoard.getVisibleGameBoard(); }
+    public void putFigureDown(){
+        while(validation.canFigureMove(activeFigure, "Down")) moveFigure("Down");
         progress();
     }
     public Shape createRandomFigure(){
         Shape randomFigure;
-        int rand=(int)(Math.random()*7);
-        if (rand==0) randomFigure = new Alpha();
-        else if (rand==1) randomFigure = new Gamma();
-        else if (rand==2) randomFigure = new LeftSkew();
-        else if (rand==3) randomFigure = new Line();
-        else if (rand==4) randomFigure = new Pyramid();
-        else if (rand==5) randomFigure = new RightSkew();
-        else randomFigure = new Square();
+        int rand=(int)(Math.random()*7)+1;
+        randomFigure = ShapeCache.getShape(String.valueOf(rand));
         return randomFigure;
     }
     private void spawnFigure(){
-        int posX=3;
-        int posY=3;
-        activeFigure.setPosition(posX, posY);
-        while(validation.doesFigureFit(activeFigure, activeFigure)==false){
-            posY--;
-            activeFigure.setPosition(posX, posY);
+        while(validation.doesFigureFit(activeFigure)==false){
+            activeFigure.go("Up", 1);
         }
         gameBoard.setFigure(activeFigure);
     }
     public void saveFigure(){
-        if(canSaveShape){
-            gameBoard.removeFigure(activeFigure);
-            if(savedFigure.getClass()==Shape.class){
-                savedFigure=activeFigure.copy(false);
-                createNewFigures();
-            } else {
-                Shape temporary=savedFigure.copy(false);
-                savedFigure=activeFigure.copy(false);
-                activeFigure=temporary.copy(false);
-                spawnFigure();
-            }
-            canSaveShape=false;
+        if(!canSaveFigure) return;
+        gameBoard.removeFigure(activeFigure);
+        if(savedFigure.getClass()==Shape.class){
+            savedFigure=ShapeCache.getShape(activeFigure.getId());
+            createNewFigures();
+        } else {
+            Shape temporary = ShapeCache.getShape(savedFigure.getId());
+            savedFigure=ShapeCache.getShape(activeFigure.getId());
+            activeFigure=ShapeCache.getShape(temporary.getId());
+            spawnFigure();
         }
+        canSaveFigure = false;
     }
 
     public void progress(){
-        if(validation.canFigureMoveDown(activeFigure)){
+        if(validation.canFigureMove(activeFigure, "Down")){
             moveFigure("Down");
         } else {
             gameBoard.removeRows();
@@ -76,70 +66,44 @@ public class GameEngine {
         }
     }
     public void createNewFigures(){
-        canSaveShape=true;
-        if(nextFigure==null) activeFigure = createRandomFigure();
-        else {
-            activeFigure=nextFigure.copy(true);
-        }
+        canSaveFigure = true;
+        activeFigure=nextFigure.clone();
         nextFigure = createRandomFigure();
         spawnFigure();
     }
-    public Shape createVirtualFigureForMovement(String direction, int amount, Shape figure){
-        Shape virtualShape = figure.copy(true);
-        int newPosY=virtualShape.getPositionY();
-        int newPosX=virtualShape.getPositionX();
-        if(direction=="Down") newPosY+=amount;
-        else if(direction=="Left") newPosX-=amount;
-        else if(direction=="Right") newPosX+=amount;
-        else if(direction=="Up") newPosY-=amount;
-        else if(direction=="Down-Left"){
-            newPosY+=amount;
-            newPosX-=amount;
-        }
-        else if(direction=="Down-Right"){
-            newPosY+=amount;
-            newPosX+=amount;
-        }
-        else if(direction=="Up-Left"){
-            newPosY-=amount;
-            newPosX-=amount;
-        }
-        else{
-            newPosY-=amount;
-            newPosX+=amount;
-        }
-        virtualShape.setPosition(newPosX, newPosY);
-        return virtualShape;
-    }
     public void moveFigure(String direction){
-        Shape newFigure = createVirtualFigureForMovement(direction, 1, activeFigure);
-        if(validation.canFigureBeThere(activeFigure, newFigure)) {
+        Shape newFigure = activeFigure.clone();
+        newFigure.go(direction, 1);
+        if(validation.canFigureMove(activeFigure, direction)) {
             gameBoard.replaceFigure(activeFigure, newFigure);
             activeFigure=newFigure;
         }
     }
-    public void rotateFigure(){
-        Shape rotatedFigure = activeFigure.copy(true);
-        rotatedFigure.rotate();
-        if(validation.canFigureBeThere(activeFigure, rotatedFigure)){
-            gameBoard.replaceFigure(activeFigure, rotatedFigure);
-            activeFigure=rotatedFigure.copy(true);
-        } else {
-            for (int i=1; i<3; i++){
-                if(whereCanBePlaced(i, rotatedFigure)!=null){
-                    rotatedFigure.setPosition(whereCanBePlaced(i, rotatedFigure));
-                    gameBoard.replaceFigure(activeFigure, rotatedFigure);
-                    activeFigure=rotatedFigure;
-                    break;
-                }
+    public void rotateActiveFigure(){
+        Shape rotatedFigure = activeFigure.clone();
+        rotatedFigure.performRotation();
+        if(validation.canReplaceFigure(activeFigure, rotatedFigure)){
+            activeFigure=rotatedFigure;
+            gameBoard.setFigure(activeFigure);
+        } else findPlaceForRotatedFigure(rotatedFigure);
+    }
+    private void findPlaceForRotatedFigure(Shape figure){
+        for (int proximity=1; proximity<4; proximity++){
+            Position position = whereCanBePlacedInProximity(proximity, figure);
+            if(position!=null){
+                figure.setPosition(position);
+                gameBoard.replaceFigure(activeFigure, figure);
+                activeFigure=figure;
+                break;
             }
         }
     }
-    private Position whereCanBePlaced(int amount, Shape figure){
+    public Position whereCanBePlacedInProximity(int proximity, Shape figure){
         String[] directions = {"Right", "Left", "Down", "Down-Right", "Down-Left", "Up-Left", "Up-Right", "Up"};
-        for (int i=0; i<directions.length; i++){
-            Shape newFigure = createVirtualFigureForMovement(directions[i], amount, figure);
-            if(validation.canFigureBeThere(activeFigure, newFigure)) return newFigure.getPosition();
+        for (int direction=0; direction<directions.length; direction++){
+            figure.go(directions[direction], proximity);
+            if(validation.canFigureBeThere(figure)) return figure.getPosition();
+            figure.go(directions[direction], -proximity);
         }
         return null;
     }
